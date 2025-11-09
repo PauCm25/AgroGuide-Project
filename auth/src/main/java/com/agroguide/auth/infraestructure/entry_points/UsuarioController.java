@@ -3,7 +3,9 @@ package com.agroguide.auth.infraestructure.entry_points;
 import com.agroguide.auth.domain.model.Usuario;
 import com.agroguide.auth.domain.usecase.UsuarioUseCase;
 import com.agroguide.auth.infraestructure.driver_adapters.UsuarioData;
+import com.agroguide.auth.infraestructure.entry_points.dto.UsuarioRequest;
 import com.agroguide.auth.infraestructure.mapper.MapperUsuario;
+import com.agroguide.auth.infraestructure.mapper.UsuarioRequestMapper;
 import lombok.RequiredArgsConstructor;;
 import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
@@ -15,11 +17,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class UsuarioController {
     private final UsuarioUseCase usuarioUseCase;
-    private final MapperUsuario mapperUsuario;
+    private final UsuarioRequestMapper usuarioRequestMapper;
     @PostMapping("/Registro")
-    public ResponseEntity<String> registrarUsuario(@RequestBody UsuarioData usuarioData) {
+    public ResponseEntity<String> registrarUsuario(@RequestBody UsuarioRequest usuarioRequest) {
         try{
-            Usuario usuario=mapperUsuario.toUsuario(usuarioData);
+            Usuario usuario=usuarioRequestMapper.toUsuario(usuarioRequest);
             Usuario usuarioValidadoGuardado=usuarioUseCase.guardarUsuario(usuario);
             if(usuarioValidadoGuardado.getId()!=null){
                 return new ResponseEntity<>("Usuario registrado correctamente",HttpStatus.OK);
@@ -33,11 +35,11 @@ public class UsuarioController {
         }
     }
     @PostMapping("/login")
-    public ResponseEntity<?> loginUsuario(@RequestBody UsuarioData usuarioData) {
+    public ResponseEntity<?> loginUsuario(@RequestBody UsuarioRequest usuarioRequest) {
         try{
             String mensajeRespuesta=usuarioUseCase.loginUsuario(
-                    usuarioData.getEmail(),
-                    usuarioData.getPassword()
+                    usuarioRequest.getEmail(),
+                    usuarioRequest.getPassword()
             );
             return new ResponseEntity<>(mensajeRespuesta, HttpStatus.OK);
         }catch (Exception e){
@@ -54,9 +56,9 @@ public class UsuarioController {
         }
     }
     @PutMapping("/update")
-    public ResponseEntity<Usuario> updateUsuario(@RequestBody UsuarioData usuarioData) {
+    public ResponseEntity<Usuario> updateUsuario(@RequestBody UsuarioRequest usuarioRequest) {
         try{
-            Usuario usuario = mapperUsuario.toUsuario(usuarioData);
+            Usuario usuario = usuarioRequestMapper.toUsuario(usuarioRequest);
             Usuario usuarioValidadoActualizado= usuarioUseCase.actualizarUsuario(usuario);
             return  new ResponseEntity<>(usuarioValidadoActualizado, HttpStatus.OK);
         }catch (Exception e){
