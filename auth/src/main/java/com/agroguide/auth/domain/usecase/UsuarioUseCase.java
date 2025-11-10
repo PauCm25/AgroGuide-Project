@@ -13,29 +13,41 @@ public class UsuarioUseCase {
     private final EncrypterGateway encrypterGateway;
 
     public Usuario guardarUsuario (Usuario usuario) {
-        //si da error, en los logs aparece ese mensaje
-        if (usuario.getEmail() == null && usuario.getPassword() == null) {
-            //Arrojar excepciones
-            throw new NullPointerException("Datos Invalidos - guardarUsuario");
-        }
-        //VALIDAR EL FORMATO DEL CORREO
-        if (!usuario.getEmail().contains("@")) {
-            log.warn("Email invalido");
-            return new Usuario();
-        }
-        //VALIDA LA EDAD NO SEA MENOS DE 15
-        if(usuario.getEdad()==null||usuario.getEdad()<16){
-            throw new IllegalArgumentException("Debe ser mayor de 15 años para registrarse");
-        }
-        String passwordEncrypt = encrypterGateway.encrypt(usuario.getPassword());
-        usuario.setPassword(passwordEncrypt);
         try{
+            if(usuario.getNombre()==null||usuario.getNombre().isBlank()||
+                    usuario.getEmail()==null|| usuario.getEmail().isBlank()||
+                    usuario.getPassword()==null ||usuario.getPassword().isBlank()||
+                    usuario.getUbicacion()==null||usuario.getUbicacion().isBlank()||
+                    usuario.getEdad()==null){
+                throw new IllegalArgumentException("Todos loss datos deben ser completados");
+            }
+            if(!usuario.getEmail().contains("@")){
+                throw new IllegalArgumentException("El correo debe conter '@'");
+            }
+            if(usuario.getEdad()<15){
+                throw new IllegalArgumentException("El edad debe ser mayor a 15");
+            }
+            if(!esPasswordSegura(usuario.getPassword())){
+                throw new IllegalArgumentException("La contraseña debe contener 8 caracteres, 1 mayuscula y 1 simbolo");
+            }
+            String passwordEncriptado= encrypterGateway.encrypt(usuario.getPassword());
+            usuario.setPassword(passwordEncriptado);
             return usuarioGateway.guardar(usuario);
-        }catch(Exception e){
-            log.error("Error al guardar usuario", e.getMessage());
-            return new Usuario();//lo devuelve vacio si llega a fallar
+
+        } catch (IllegalArgumentException e) {
+            throw e;
+        }catch (Exception e){
+            throw new RuntimeException("Error al guardar el usuario"+e.getMessage());
         }
 
+    }
+    private boolean esPasswordSegura(String password) {
+        return password != null &&
+                password.length() >= 8 &&
+                password.matches(".*[A-Z].*") &&        // al menos una mayúscula
+                password.matches(".*[a-z].*") &&        // al menos una minúscula
+                password.matches(".*\\d.*") &&          // al menos un número
+                password.matches(".*[!@#$%^&*()_+=<>?/{},\\[\\]\\-].*");  // al menos un símbolo
     }
     public String loginUsuario (String email, String password) {
         Usuario usuarioLogueo = usuarioGateway.buscarPorEmail(email);
