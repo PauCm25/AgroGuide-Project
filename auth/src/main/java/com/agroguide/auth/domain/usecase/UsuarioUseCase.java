@@ -14,10 +14,12 @@ public class UsuarioUseCase {
 
     public Usuario guardarUsuario (Usuario usuario) {
         try{
+            //ISBLANK= verifica si un valor esta nulo o con espacios en blanco
             if(usuario.getNombre()==null||usuario.getNombre().isBlank()||
                     usuario.getEmail()==null|| usuario.getEmail().isBlank()||
                     usuario.getPassword()==null ||usuario.getPassword().isBlank()||
                     usuario.getUbicacion()==null||usuario.getUbicacion().isBlank()||
+                    usuario.getTipoUsuario()==null||usuario.getTipoUsuario().isBlank()||
                     usuario.getEdad()==null){
                 throw new IllegalArgumentException("Todos loss datos deben ser completados");
             }
@@ -49,24 +51,36 @@ public class UsuarioUseCase {
                 password.matches(".*\\d.*") &&          // al menos un número
                 password.matches(".*[!@#$%^&*()_+=<>?/{},\\[\\]\\-].*");  // al menos un símbolo
     }
-    public String loginUsuario (String email, String password) {
-        Usuario usuarioLogueo = usuarioGateway.buscarPorEmail(email);
-        if (usuarioLogueo.getEmail()==null || usuarioLogueo.getPassword()==null) {
-            return "Usuario no encontrado";
-
-        }
-        if (encrypterGateway.checkPass(password, usuarioLogueo.getPassword())) {
-            return "Credenciales Válidas";
-        } else  {
-            return "Credenciales Inválidas";
+    public Usuario loginUsuario (String email, String password) {
+        try {
+            Usuario usuario = buscarPorEmail(email);
+            if (usuario == null || usuario.getEmail() == null) {
+                throw new IllegalArgumentException("Usuario no encontrado");
+            }
+            if (!encrypterGateway.checkPass(password, usuario.getPassword())) {
+                throw new IllegalArgumentException("Contraseña incorrecta");
+            }
+            return usuario;
+        }catch (Exception e){
+            throw new IllegalArgumentException("Usuario no encontrado");
         }
     }
+
     public Usuario actualizarUsuario (Usuario usuario) {
         if (usuario.getId()==null){
             throw new IllegalArgumentException("Es necesario el ID para actualizar");
         }
+
+        Usuario usuarioExiste= buscarPorId(usuario.getId());
+        if(usuarioExiste == null){
+            throw new IllegalArgumentException("Usuario con ID"+usuario.getId()+"no encontrado");
+        }
+        //TRIM= elimina espacios en blanco
+        if (usuario.getPassword()==null||usuario.getPassword().trim().isEmpty()){
+            throw new IllegalArgumentException("La contraseña es requerida");
+        }
         usuario.setPassword(encrypterGateway.encrypt(usuario.getPassword()));
-        return usuarioGateway.actualizarUsuario(usuario);
+        return usuarioGateway.guardar(usuario);
     }
     public void eliminarPorIdUsuario(Long id) {
         try {
@@ -86,9 +100,12 @@ public class UsuarioUseCase {
         }
     }
     public Usuario buscarPorEmail(String email) {
-        return usuarioGateway.buscarPorEmail(email);
+        try {
+            return usuarioGateway.buscarPorEmail(email);
+        }catch(Exception e){
+            throw new IllegalArgumentException("No existe usuario con el email " + email);
+        }
     }
-
 
 }
 
