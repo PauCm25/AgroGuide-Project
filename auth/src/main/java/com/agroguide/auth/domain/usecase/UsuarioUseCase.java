@@ -4,46 +4,72 @@ import com.agroguide.auth.domain.model.Usuario;
 import com.agroguide.auth.domain.model.gateway.EncrypterGateway;
 import com.agroguide.auth.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.List;
 
 @RequiredArgsConstructor
-@Slf4j //inyecta log por medio de Loombok
+//@Slf4j //inyecta log por medio de Loombok
 public class UsuarioUseCase {
     private final UsuarioGateway usuarioGateway;
     private final EncrypterGateway encrypterGateway;
 
-    public Usuario guardarUsuario (Usuario usuario) {
+    public Usuario guardarUsuario(Usuario usuario) {
         try{
-            //ISBLANK= verifica si un valor esta nulo o con espacios en blanco
-            if(usuario.getNombre()==null||usuario.getNombre().isBlank()||
-                    usuario.getEmail()==null|| usuario.getEmail().isBlank()||
-                    usuario.getPassword()==null ||usuario.getPassword().isBlank()||
-                    usuario.getUbicacion()==null||usuario.getUbicacion().isBlank()||
-                    usuario.getTipoUsuario()==null||usuario.getTipoUsuario().isBlank()||
-                    usuario.getEdad()==null){
-                throw new IllegalArgumentException("Todos loss datos deben ser completados");
-            }
-            if(!usuario.getEmail().contains("@")){
-                throw new IllegalArgumentException("El correo debe conter '@'");
-            }
-            if(usuario.getEdad()<15){
-                throw new IllegalArgumentException("El edad debe ser mayor a 15");
-            }
-            if(!esPasswordSegura(usuario.getPassword())){
-                throw new IllegalArgumentException("La contraseña debe contener 8 caracteres, 1 mayuscula y 1 simbolo");
-            }
+            validacionCamposUsuario(usuario);
+            listaErrores(usuario);
             String passwordEncriptado= encrypterGateway.encrypt(usuario.getPassword());
             usuario.setPassword(passwordEncriptado);
             return usuarioGateway.guardar(usuario);
 
         } catch (IllegalArgumentException e) {
+            //CORREGIR ESTO DEBE MANDAR UN MENSAJE O ALGO
             throw e;
         }catch (Exception e){
             throw new RuntimeException("Error al guardar el usuario"+e.getMessage());
         }
 
     }
-    private boolean esPasswordSegura(String password) {
+
+    private static void listaErrores(Usuario usuario) {
+        List<String> errores =new ArrayList<>();
+        if (usuario.getNombre()==null|| usuario.getNombre().isBlank()){
+            errores.add("El nombre es requerido");
+        }
+        if (usuario.getEmail()==null || usuario.getEmail().isBlank()){
+            errores.add("El email es obligatorio");
+            //Contains=Verdadero o falso
+        }else if(!usuario.getEmail().contains(("@"))){
+            errores.add("El email debe tener '@'");
+        }
+        if (usuario.getPassword()==null || usuario.getPassword().isBlank()){
+            errores.add("Debe seleccionar una región");
+        }
+        if(usuario.getEdad()==null|| usuario.getEdad()<15){
+            errores.add("El edad debe ser mayor a 15");
+        }
+        if(!esPasswordSegura(usuario.getPassword())){
+           errores.add("La contraseña debe contener 8 caracteres, 1 mayuscula y 1 simbolo");
+        }
+        if (!errores.isEmpty()) {
+            throw new IllegalArgumentException(String.join(" | ", errores));
+        }
+    }
+
+    private static void validacionCamposUsuario(Usuario usuario) {
+        if(
+                //ISBLANK= verifica si un valor esta nulo o con espacios en blanco
+                usuario.getNombre()==null|| usuario.getNombre().isBlank()||
+                usuario.getEmail()==null|| usuario.getEmail().isBlank()||
+                usuario.getPassword()==null || usuario.getPassword().isBlank()||
+                usuario.getUbicacion()==null|| usuario.getUbicacion().isBlank()||
+                usuario.getTipoUsuario()==null|| usuario.getTipoUsuario().isBlank()||
+                usuario.getEdad()==null){
+            throw new IllegalArgumentException("Todos los datos deben ser completados");
+        }
+    }
+
+    //ESTUDIAR PORQUE ESTATICA
+    private static boolean esPasswordSegura(String password) {
         return password != null &&
                 password.length() >= 8 &&
                 password.matches(".*[A-Z].*") &&        // al menos una mayúscula
@@ -67,6 +93,8 @@ public class UsuarioUseCase {
     }
 
     public Usuario actualizarUsuario (Usuario usuario) {
+        validacionCamposUsuario(usuario);
+        listaErrores(usuario);
         if (usuario.getId()==null){
             throw new IllegalArgumentException("Es necesario el ID para actualizar");
         }
@@ -75,8 +103,7 @@ public class UsuarioUseCase {
         if(usuarioExiste == null){
             throw new IllegalArgumentException("Usuario con ID"+usuario.getId()+"no encontrado");
         }
-        //TRIM= elimina espacios en blanco
-        if (usuario.getPassword()==null||usuario.getPassword().trim().isEmpty()){
+        if (usuario.getPassword()==null||usuario.getPassword().isEmpty()){
             throw new IllegalArgumentException("La contraseña es requerida");
         }
         usuario.setPassword(encrypterGateway.encrypt(usuario.getPassword()));
