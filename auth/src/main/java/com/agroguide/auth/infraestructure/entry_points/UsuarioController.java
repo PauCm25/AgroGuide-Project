@@ -91,7 +91,7 @@ public class UsuarioController {
             LoginResponse error = new LoginResponse
                     ("Error al actualizar el usuario: ",
                             null, null, null);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+            return ResponseEntity.status(HttpStatus.OK).body(error);
         }
     }
     @DeleteMapping("/{id}")
